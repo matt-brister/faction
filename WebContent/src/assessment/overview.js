@@ -20,6 +20,9 @@ import '../scripts/jquery.autocomplete.min';
 import 'select2';
 import { marked } from 'marked';
 import Chart from 'chart.js/auto';
+import TurndownService from 'turndown'
+let html2md = new TurndownService()
+
 
 
 global._token = $("#_token")[0].value;
@@ -75,8 +78,46 @@ let fromMarkdown = {
 		let selected = this.getSelectedElements();
 		const md = selected.reduce((acc, item) => acc + item.innerText + "\n", "");
 		const html = marked.parse(md);
-		const div = document.createElement("div");
+		const div = document.createElement("p");
 		div.innerHTML = html;
+		const parent = selected[0].parentNode;
+		parent.insertBefore(div, selected[0]);
+		for (let i = 0; i < selected.length; i++) {
+			selected[i].remove();
+		}
+		this.history.push(true)
+	}
+}
+plugins['fromMarkdown'] = fromMarkdown;
+let toMarkdown = {
+	name: 'toMarkdown',
+	display: 'command',
+	title: 'Convert To Markdown',
+	buttonClass: '',
+	innerHTML: '<i class="fa-brands fa-markdown" style="color:lightgray; transform: rotate(180deg);"></i>',
+	add: function(core, targetElement) {
+		core.context.toMarkdown = {
+			targetButton: targetElement,
+			preElement: null
+		}
+	},
+	active: function(element) {
+		if (element) {
+			this.util.addClass(this.context.toMarkdown.targetButton.firstChild, 'mdEnabled');
+			this.context.toMarkdown.preElement = element;
+			return true;
+		} else {
+			this.util.removeClass(this.context.toMarkdown.targetButton.firstChild, 'mdEnabled');
+			this.context.toMarkdown.preElement = null;
+		}
+		return false;
+	},
+	action: function() {
+		let selected = this.getSelectedElements();
+		const html = selected.reduce((acc, item) => acc + item.outerHTML + "", "");
+		const md = html2md.turndown(html);
+		const div = document.createElement("div");
+		div.innerHTML = `<pre>${md}</pre>`;
 		const parent = selected[0].parentNode;
 		parent.insertBefore(div, selected[0]);
 		for (let i = 0; i < selected.length; i++) {
@@ -92,7 +133,7 @@ var editorOptions = {
 		['undo', 'redo', 'fontSize', 'formatBlock', 'textStyle'],
 		['bold', 'underline', 'italic', 'strike', 'subscript', 'superscript', 'removeFormat'],
 		['fontColor', 'hiliteColor', 'outdent', 'indent', 'align', 'horizontalRule', 'list', 'table'],
-		['link', 'image', 'fullScreen', 'showBlocks', 'fromMarkdown'],
+		['link', 'image', 'fullScreen', 'showBlocks', 'fromMarkdown', 'codeView'],
 
 	],
 	defaultStyle: 'font-family: arial; font-size: 18px',
@@ -280,18 +321,20 @@ function setEditorContents(contents, editor, isEncoded) {
 }
 $(function() {
 	global._token = $("#_token")[0].value;
-	editors.summary = suneditor.create("summary", editorOptions);
+	editors.summary = suneditor.create("summary", {...editorOptions});
 	editors.summary.onInput = function(contents, core) {
 		queueSave("summary");
 	}
 	editors.summary.onChange = function(contents, core) {
-		//setEditorContents(contents, 'summary', false);
 		if (document.getElementById(`summary_header`).innerHTML == "") {
 			queueSave("summary");
 		}
+		if (!contents.endsWith("</p>")) {
+			editors.summary.setContents(contents + "<p><br></p>");
+		}
 	}
 
-	editors.risk = suneditor.create("riskAnalysis", editorOptions);
+	editors.risk = suneditor.create("riskAnalysis", {...editorOptions});
 	editors.risk.onInput = function(contents, core) {
 		queueSave("risk");
 	}
@@ -300,8 +343,11 @@ $(function() {
 		if (document.getElementById(`risk_header`).innerHTML == "") {
 			queueSave("risk");
 		}
+		if (!contents.endsWith("</p>")) {
+			editors.risk.setContents(contents + "<p><br></p>");
+		}
 	}
-	editors.notes = suneditor.create("notes", editorOptions);
+	editors.notes = suneditor.create("notes", {...editorOptions});
 	editors.notes.onInput = function(contents, core) {
 		queueSave("notes");
 	}
@@ -309,6 +355,9 @@ $(function() {
 		//setEditorContents(contents, 'notes', false);
 		if (document.getElementById(`notes_header`).innerHTML == "") {
 			queueSave("notes");
+		}
+		if (!contents.endsWith("</p>")) {
+			editors.notes.setContents(contents + "<p><br></p>");
 		}
 	}
 	suneditor.create("engagmentnotes", engagementOptions);
@@ -644,10 +693,8 @@ $(function() {
 
 
 	});
-
-
 	$(".saveTemplate").on('click', async (event) => {
-		let type = $(event.currentTarget).attr("for")
+		let type = $(event.currentTarget).attr("for");
 		let selected = $(`#${type}Templates option:selected`);
 		let selectedText = Array.from(selected).map((t) => t.innerHTML)
 		let contentMessage = "";
@@ -664,15 +711,15 @@ $(function() {
 				data += "&_token=" + global._token;
 				$.post("tempSave", data).done(function(resp) {
 					_token = resp.token;
-					const template = resp.templates[0]
+					const template = resp.templates[0];
 					if (!Array.from($(`#${type}Templates option`))
 						.some((t) => $(t).val() == template.tmpId)) {
 						let option = document.createElement("option");
-						$(option).attr("global", "false")
-						$(option).addClass("userTemplate")
-						$(option).val(template.tmpId)
-						$(option).html(template.title)
-						$(`#${type}Templates`).append(option).trigger("change")
+						$(option).attr("global", "false");
+						$(option).addClass("userTemplate");
+						$(option).val(template.tmpId);
+						$(option).html(template.title);
+						$(`#${type}Templates`).append(option).trigger("change");
 					}
 					alertMessage(resp, "Template Updated.");
 				});
@@ -747,6 +794,21 @@ $(function() {
 			}
 		});
 	});
+	$(".globalTemplate, .userTemplate").on("dblclick", async (event)=>{
+		let id = event.target.parentElement.id
+		let value = event.target.value;
+		let type = "summary";
+		if(id.indexOf('risk') != -1){
+			type='risk'
+		}
+		await $.get('tempSearchDetail?tmpId=' + value)
+			.done(function(data) {
+				let template = data.templates[0].text;
+				let text = getEditorText(type) + "\n" + template;
+				setEditorContents(text, type, false);
+			});
+	})
+	
 	$(".addTemplate").on('click', async (event) => {
 		let type = $(event.currentTarget).attr("for")
 		let selected = $(`#${type}Templates option:selected`);

@@ -5,7 +5,8 @@
 <struts>
     
 	<constant name="struts.multipart.maxSize" value="10000000"/>	
-
+	<constant name="struts.i18n.reload" value="true" />
+	<constant name="struts.locale" value="en_US" />
     <package name="default" namespace="/" extends="struts-default">
       <interceptors>
       	 <interceptor name="staticParams" class="com.opensymphony.xwork2.interceptor.StaticParametersInterceptor"/>
@@ -16,7 +17,7 @@
 	     <interceptor name="accessControlInterceptor" class="com.fuse.utils.AccessControlInterceptor"/>
 	     <interceptor-stack name="defaultSecurityStack">
 	         <interceptor-ref name="defaultStack">
-	         	<param name="fileUpload.allowedExtensions">msg,jpg,gif,png,pdf,doc,xls,xlsx,docx,txt,csv,xml,bmp,jpeg,zip,rar,tar,gzip,tar.gz</param>
+	         	<param name="fileUpload.allowedExtensions">msg,jpg,gif,png,pdf,doc,xls,xlsx,docx,txt,csv,xml,bmp,jpeg,zip,rar,tar,gzip,tar.gz,jar</param>
 	         </interceptor-ref>
 	         <interceptor-ref name="accessControlInterceptor"/>
 	         <interceptor-ref name="cachingHeadersInterceptor"/>

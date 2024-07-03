@@ -78,7 +78,7 @@
 												<i class="fa fa-edit"></i>
 											</span> <s:if test="inActive == false">
 												<span class="vulnControl vulnControl-delete deleteUser"
-													onClick="del(${id})">
+													onClick="del(${id}, '<s:property value="fname"/> <s:property value="lname"/>')">
 													<i class="fa fa-trash"></i>
 												</span>
 											</s:if> <s:else>
@@ -249,11 +249,11 @@
 								<div class="box-body">
 									<div class="form-group">
 										<label>User: *</label> <input class="form-control" id="uname"
-											placeholder="User">
+											placeholder="User" autocomplete="new-password">
 									</div>
 									<div class="form-group">
 										<label>Password:</label> <input class="form-control" id="credential"
-											type="password" placeholder="Sends Registration Email if Blank">
+											type="password" placeholder="Sends Registration Email if Blank" autocomplete="new-password">
 									</div>
 									<div class="form-group">
 										<label>Firstame: *</label> <input type="search"

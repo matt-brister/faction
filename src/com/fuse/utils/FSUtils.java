@@ -15,6 +15,7 @@ import java.net.Proxy;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.spec.KeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +40,7 @@ import javax.persistence.EntityManager;
 import javax.servlet.ServletContext;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -54,6 +56,16 @@ import com.fuse.dao.DefaultVulnerability;
 import com.fuse.dao.HibHelper;
 import com.fuse.dao.ReportOptions;
 import com.fuse.dao.Vulnerability;
+
+import org.commonmark.Extension;
+import org.commonmark.ext.autolink.AutolinkExtension;
+import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
+import org.commonmark.ext.gfm.tables.TablesExtension;
+import org.commonmark.ext.ins.InsExtension;
+import org.commonmark.node.*;
+import org.commonmark.parser.IncludeSourceSpans;
+import org.commonmark.parser.Parser;
+import org.commonmark.renderer.html.HtmlRenderer;
 
 public class FSUtils {
 	private static String INPUT = "Unvalidated Input";
@@ -221,7 +233,7 @@ public class FSUtils {
 					jsonStr += sc.nextLine();
 				}
 				// convert new line chars to HTML
-				jsonStr = jsonStr.replaceAll("(\\\\n)", "<br>");
+				jsonStr = jsonStr.replaceAll("(\\\\n)", "<br/>");
 
 				// parse the json files.
 				JSONObject json = (JSONObject) new JSONParser().parse(jsonStr);
@@ -422,6 +434,29 @@ public class FSUtils {
 		}
 
 	}
+	
+	public static String md5hash(String data) {
+		try {
+			MessageDigest md;
+			md = MessageDigest.getInstance("md5");
+			byte[] hash = md.digest(data.getBytes());
+			return Hex.encodeHexString( hash );
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	public static String md5hash(byte [] data) {
+		try {
+			MessageDigest md;
+			md = MessageDigest.getInstance("md5");
+			byte[] hash = md.digest(data);
+			return Hex.encodeHexString( hash );
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
 
 	public static String encryptPassword(String password) {
 		try {
@@ -477,49 +512,7 @@ public class FSUtils {
 		return ics;
 	}
 
-	public static boolean checkEmailDomain(String email) {
-		List<String> emails = new ArrayList<String>();
-		emails.add(email.trim());
-		return checkEmailDomain(emails);
-	}
 
-	public static boolean checkEmailDomain(List<String> emails) {
-		Properties prop = new Properties();
-		InputStream input = null;
-
-		try {
-			String path = "/opt/faction/";
-			String os = System.getProperty("os.name");
-			if (os.contains("win"))
-				path = "C:" + path;
-
-			input = new FileInputStream(path + "db.config");
-
-			// load a properties file
-			prop.load(input);
-
-			String dString = prop.getProperty("domains", "");
-			input.close();
-			if ( dString==null || dString.equals("")) {
-				return true;
-			} else {
-				List<String> domains = Arrays.asList(dString.split(";"));
-
-				boolean test = true;
-				for (String email : emails) {
-					test = domains.stream().anyMatch(e -> email.trim().endsWith("@" + e.trim()));
-					// if false we found an email that did not match any domains
-					// we should fail the test then.
-					if (!test)
-						return false;
-				}
-				return test;
-			}
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			return true;
-		}
-	}
 
 	private static String getDescriptionFromVulnDB(String reference) {
 		try {
@@ -529,10 +522,10 @@ public class FSUtils {
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 			InputStream responseStream = connection.getInputStream();
 			String contents = IOUtils.toString(responseStream, StandardCharsets.UTF_8);
-			// TODO: Might need to delete this comment. Testing that the new vuln
-			// descriptions
-			// update correctly
-			return contents; // contents.replace("\n\n", "<br/><br/>").replace("\n", " ");
+			contents = convertFromMarkDown(contents);
+			/// This line is because new lines show up string concatinated in the editor. 
+			contents = contents.replaceAll("\n", " ");
+			return contents; 
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 			return "";
@@ -551,7 +544,8 @@ public class FSUtils {
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 			InputStream responseStream = connection.getInputStream();
 			String contents = IOUtils.toString(responseStream, StandardCharsets.UTF_8);
-			return contents; // contents.replace("\n\n", "<br/><br/>").replace("\n", " ");
+			contents = convertFromMarkDown(contents);
+			return contents; 
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 			return "";
@@ -659,6 +653,23 @@ public class FSUtils {
 			HibHelper.getInstance().commit();
 			}
 		return RPO;
+	}
+	
+	public static String convertFromMarkDown(String text) {
+		try {
+			List<Extension> extensions = Arrays.asList(TablesExtension.create());
+			Parser parser = Parser.builder()
+					.extensions(extensions)
+					.build();
+			Node document = parser.parse(text);
+			HtmlRenderer renderer = HtmlRenderer.builder().extensions(extensions).build();
+			String converted = renderer.render(document);
+			converted += "<br/>";
+			return converted;
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			return text;
+		}
 	}
 
 }

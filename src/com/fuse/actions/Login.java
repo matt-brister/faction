@@ -5,6 +5,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import org.apache.struts2.ServletActionContext;
@@ -94,7 +96,7 @@ public class Login extends FSActionSupport {
 			if (result == AuthResult.SUCCESS) {
 				HibHelper.getInstance().preJoin();
 				em.joinTransaction();
-				HttpSession session = request.getSession();
+				HttpSession session = ServletActionContext.getRequest().getSession();
 				AuditLog.audit(username, this, "Successsfully logged in", AuditLog.Login, false);
 				HibHelper.getInstance().commit();
 				User user = (User) session.getAttribute("user");
@@ -111,8 +113,8 @@ public class Login extends FSActionSupport {
 					session.setAttribute("feedEnabled", ss.getEnablefeed());
 					session.setAttribute("retestsEnabled", true);
 				}
-				session.setAttribute("title1", ss.getBoldTitle() == null ? "My" : ss.getBoldTitle());
-				session.setAttribute("title2", ss.getOtherTitle() == null ? "FACTION" : ss.getOtherTitle());
+				session.setAttribute("title1", ss.getBoldTitle() == null ? "FACTION" : ss.getBoldTitle());
+				session.setAttribute("title2", ss.getOtherTitle() == null ? "oss" : ss.getOtherTitle());
 
 				return redirectIt(user);
 			} else if (result == AuthResult.FAILED_AUTH) {
@@ -271,18 +273,14 @@ public class Login extends FSActionSupport {
 					AssessmentType newType = new AssessmentType();
 					newType.setType("Security Assessment");
 					em.persist(newType);
-
-					if (reportTemplates == null || reportTemplates.isEmpty()) {
-						ReportTemplate report = (new ReportTemplateFactory()).getReportTemplate();
-						String defaultFileName = report.setup();
-						ReportTemplates reportTemplate = new ReportTemplates();
-						reportTemplate.setTeam(theTeam);
-						reportTemplate.setFilename(defaultFileName);
-						reportTemplate.setRetest(false);
-						reportTemplate.setType(newType);
-						reportTemplate.setName("Sample Template");
-						em.persist(reportTemplate);
-
+					
+					try {
+						if (reportTemplates == null || reportTemplates.isEmpty()) {
+							ReportTemplates reportTemplate = new ReportTemplates();
+							reportTemplate.initDefaultTemplate(theTeam, newType);
+						}
+					}catch(Exception ex) {
+						ex.printStackTrace();
 					}
 				}
 				AuditLog.audit(adminUsername, this, "Admin Account Created", AuditLog.Login, false);
@@ -317,8 +315,13 @@ public class Login extends FSActionSupport {
 			this.message = "Can't Reset an LDAP account. Please contact your administrator.";
 			return "reset";
 		}
+		if (u != null && u.getAuthMethod().equals("OAUTH2.0")) {
+			this.failed = true;
+			this.message = "Can't Reset an OAUTH account. Please contact your administrator.";
+			return "reset";
+		}
 
-		if (u != null && !u.getPermissions().isSsouser()) {
+		if (u != null) {
 			// Check if user is inactive due to number of days inactive
 			if (ems != null && ems.getInactiveDays() != null && ems.getInactiveDays() > 30) {
 				Date ll = u.getLastLogin();

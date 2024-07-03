@@ -2,7 +2,7 @@ require('suneditor/dist/css/suneditor.min.css');
 require('../scripts/fileupload/css/fileinput.css');
 require('./scheduling.css');
 import suneditor from 'suneditor';
-import { font, fontColor, fontSize, align, image, imageGallery, list, formatBlock, table, blockquote } from 'suneditor/src/plugins';
+import plugins from 'suneditor/src/plugins';
 import CodeMirror from 'codemirror';
 import 'codemirror/mode/htmlmixed/htmlmixed';
 import 'codemirror/lib/codemirror.css';
@@ -53,7 +53,7 @@ let fromMarkdown = {
 		let selected = this.getSelectedElements();
 		const md = selected.reduce( (acc,item) => acc + item.innerText +"\n", "") ;
 		const html = marked.parse(md);
-		const div = document.createElement("div");
+		const div = document.createElement("p");
 		div.innerHTML = html;
 		const parent = selected[0].parentNode;
 		parent.insertBefore(div, selected[0]);
@@ -63,14 +63,15 @@ let fromMarkdown = {
 		this.history.push(true)
 	}
 }
+plugins['fromMarkdown'] = fromMarkdown;
 let editorOptions = {
 	codeMirror: CodeMirror,
-	plugins: [font, fontColor, fontSize, image, align, imageGallery, list, formatBlock, table, blockquote, fromMarkdown],
+	plugins: plugins, 
 	buttonList: [
 		['undo', 'redo', 'font', 'fontSize', 'formatBlock'],
 		['bold', 'underline', 'italic', 'strike', 'subscript', 'superscript', 'removeFormat'],
 		['fontColor', 'hiliteColor', 'outdent', 'indent', 'align', 'horizontalRule', 'list', 'table'],
-		['link', 'image', 'fullScreen', 'showBlocks', 'fromMarkdown'],
+		['link', 'image', 'fullScreen', 'showBlocks', 'fromMarkdown', 'codeView'],
 
 	],
 	defaultStyle: 'font-family: arial; font-size: 18px',
@@ -502,7 +503,7 @@ $(function() {
 
 	});
 	searchTable.on('draw', function(){
-		$('#searchResults').unbind('click', 'tr');
+		$('#searchResults').off('click', 'tr');
 		$('#searchResults').on('click', 'tr', function(event){
 			const id = searchTable.row(this).data()[11]
 			console.log(event.target.outerHTML)
@@ -532,7 +533,7 @@ $(function() {
 
 
 			let data = "appid=" + $("#appId").val();
-			data += "&appname=" + EencodeURIComponent($("#appName").val());
+			data += "&appname=" + encodeURIComponent($("#appName").val());
 			$.post("../service/applicationInventory", data).done(function(resp) {
 				let invList = [];
 				invData = resp;

@@ -27,18 +27,17 @@
 			<bs:mco colsize="6">
 				<bs:box type="success" title="Assessment Type">
 					<bs:row>
-						<bs:inputgroup name="" colsize="9" id="typeName"
-							placeholder="Enter Assessment Type Name"></bs:inputgroup>
 						<bs:button color="success" size="md" colsize="3"
 							text="<i class='fa fa-plus'></i> Add" id="addType"></bs:button>
 					</bs:row>
 					<br>
 					<bs:row>
 						<bs:mco colsize="12">
-							<bs:datatable columns="Name,Options" classname="" id="type">
+							<bs:datatable columns="Name,Risk Rating System,&nbsp;" classname="" id="type">
 								<s:iterator value="types">
 									<tr>
 										<td><s:property value="type" /></td>
+										<td><s:property value="ratingSystemName" /></td>
 										<td width="100px"><span onclick="editType(this,${id })"
 											class="vulnControl"> <i class="fa fa-edit"></i>
 										</span> <span onclick="delType(this,${id })"
@@ -55,8 +54,6 @@
 			<bs:mco colsize="6">
 				<bs:box type="warning" title="Campaign">
 					<bs:row>
-						<bs:inputgroup name="" colsize="9" id="campaignName"
-							placeholder="Enter Campaign Name"></bs:inputgroup>
 						<bs:button color="success" size="md" colsize="3"
 							text="<i class='fa fa-plus'></i> Add" id="addCampaign">
 						</bs:button>
@@ -102,14 +99,14 @@
 									classname="" id="campaign">
 									<s:iterator value="custom">
 										<tr>
-											<td><input value="${key}" id="key${id}"
+											<td><input value="<s:property value="key"/>" id="key${id}"
 												class="form-control pull-right" /></td>
-											<td><input id="var${id}" value="${variable}"
+											<td><input id="var${id}" value="<s:property value="variable"/>"
 												class="form-control pull-right" /></td>
-											<td><input id="default${id}" value="${defaultValue}"
+											<td><input id="default${id}" value="<s:property value="defaultValue"/>"
 												class="form-control pull-right" /></td>
-											<td>${fieldTypeStr}</td>
-											<td>${typeStr}</td>
+											<td><s:property value="fieldTypeStr"/></td>
+											<td><s:property value="typeStr"/></td>
 											<s:if test="readonly">
 												<td><input type=checkbox id="ro${id}" checked /></td>
 											</s:if>
@@ -155,9 +152,9 @@
 								</div>
 							</bs:mco>
 							<bs:inputgroup name="Bold Title:" colsize="12" id="title1"
-								placeholder="Fuse">${title[0]}</bs:inputgroup>
+								placeholder="Fuse"><s:property value="title[0]"/></bs:inputgroup>
 							<bs:inputgroup name="Secondary Title:" colsize="12" id="title2"
-								placeholder="FACTION">${title[1]}</bs:inputgroup>
+								placeholder="FACTION"><s:property value="title[1]"/></bs:inputgroup>
 							<br>
 							<bs:button color="info" size="md" colsize="3"
 								text="<i class='fa fa-save'></i> Save Titles" id="updateTitles">
@@ -207,17 +204,11 @@
 					<bs:box type="info" title="Email Settings">
 						<bs:row>
 							<bs:inputgroup name="Email Server:" colsize="12" id="emailServer"
-								placeholder="Email Server Address">
-								<s:property value="EMS.server" />
-							</bs:inputgroup>
+								placeholder="Email Server Address"><s:property value="EMS.server" /></bs:inputgroup>
 							<bs:inputgroup name="Email Port:" colsize="12" id="emailPort"
-								placeholder="Email Server Port">
-								<s:property value="EMS.port" />
-							</bs:inputgroup>
+								placeholder="Email Server Port"><s:property value="EMS.port" /></bs:inputgroup>
 							<bs:inputgroup name="Email Protocol:" colsize="12"
-								id="emailProto" placeholder="smtp,pop,imap">
-								<s:property value="EMS.type" />
-							</bs:inputgroup>
+								id="emailProto" placeholder="smtp,pop,imap"><s:property value="EMS.type" /></bs:inputgroup>
 							<div class="col-md-12">
 								<div class="checkbox">
 									<label> <input type="checkbox" id="isAuth"
@@ -231,19 +222,13 @@
 							</div>
 							<bs:inputgroup
 								name="Account Username (Sender Account if UnAuthenticated):"
-								colsize="12" id="emailName" placeholder="Username">
-								<s:property value="EMS.uname" />
-							</bs:inputgroup>
+								colsize="12" id="emailName" placeholder="Username"><s:property value="EMS.uname" /></bs:inputgroup>
 							<bs:inputgroup name="Email from Address:" colsize="12"
-								id="fromAddress" placeholder="From Address">
-								<s:property value="EMS.fromaddress" />
-							</bs:inputgroup>
+								id="fromAddress" placeholder="From Address"><s:property value="EMS.fromaddress" /></bs:inputgroup>
 							<bs:inputgroup name="Account Password:" colsize="12"
 								id="emailPass" placeholder="Password" password="true">*****</bs:inputgroup>
 							<bs:inputgroup name="Email Subject Prefix: " colsize="12"
-								id="emailPrefix" placeholder="Faction : ">
-								<s:property value="EMS.prefix" />
-							</bs:inputgroup>
+								id="emailPrefix" placeholder="Faction : "><s:property value="EMS.prefix" /></bs:inputgroup>
 							<bs:mco colsize="12">
 								<div class="form-group">
 									<label>Email Signature:</label>

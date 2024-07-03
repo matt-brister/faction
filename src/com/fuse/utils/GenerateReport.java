@@ -131,24 +131,25 @@ public class GenerateReport {
 			for (Vulnerability v : a.getVulns()) {
 				v.updateRiskLevels(em);
 			}
-			//TODO: Not sure why this is added... debugging?
-			/*for (Vulnerability v : a.getVulns()) {
-				System.out.println(v.getOverallStr());
-			}*/
 
 			String mongoQuery = "{\"type_id\" : " + a.getType().getId() + ", \"team_id\" : "
 					+ a.getAssessor().get(0).getTeam().getId() + ", \"retest\" : true }";
 			ReportTemplates base = (ReportTemplates) em.createNativeQuery(mongoQuery, ReportTemplates.class)
 					.getSingleResult();
-
-			ReportTemplate report = (new ReportTemplateFactory()).getReportTemplate();
-			InputStream is = report.getTemplate(base.getFilename());
+		
+			InputStream is = null;
+			if(base.getSaveInDB()) {
+				ReportTemplate report = (new ReportTemplateFactory()).getReportTemplate();
+				is = report.getTemplate(base.getFilename());
+			}else {
+				is = base.getTemplate();
+			}
 
 			WordprocessingMLPackage mlp = WordprocessingMLPackage.load(is);
 
-			DocxUtils genDoc = new DocxUtils();
+			DocxUtils genDoc = new DocxUtils(mlp, a);
 			genDoc.FONT = RPO.getFont();
-			genDoc.generateDocx(mlp, a, customCSS);
+			genDoc.generateDocx(customCSS);
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			mlp.save(baos);
 			byte[] finalReport = baos.toByteArray();
@@ -187,21 +188,23 @@ public class GenerateReport {
 
 			ReportTemplates base = (ReportTemplates) em.createNativeQuery(mongoQuery, ReportTemplates.class)
 					.getSingleResult();
+			
+			InputStream is = null;
+			if(!base.getSaveInDB()) {
+				ReportTemplate report = (new ReportTemplateFactory()).getReportTemplate();
+				is = report.getTemplate(base.getFilename());
+			}else {
+				is = base.getTemplate();
+			}
 
-			ReportTemplate report = (new ReportTemplateFactory()).getReportTemplate();
-			InputStream is = report.getTemplate(base.getFilename());
-
-			// WordprocessingMLPackage mlp = WordprocessingMLPackage.load(new
-			// File(base.getFilename()));
 			WordprocessingMLPackage mlp = WordprocessingMLPackage.load(is);
 
-			DocxUtils gendoc = new DocxUtils();
+			DocxUtils gendoc = new DocxUtils(mlp, a);
 			gendoc.FONT = RPO.getFont();
-			mlp = gendoc.generateDocx(mlp, a, customCSS);
+			mlp = gendoc.generateDocx(customCSS);
 			gendoc.tocGenerator(mlp);
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			mlp.save(baos);
-			// byte[] report = DocxUtils.updateTOC(baos.toByteArray());
 			byte[] finalReport = baos.toByteArray();
 
 			String docx = Base64.encodeBase64String(finalReport);
@@ -219,6 +222,7 @@ public class GenerateReport {
 				+ "'></img><br/>";
 		Assessment a = new Assessment();
 		User u = new User();
+		u.setId(1l);
 		u.setFname("Bob");
 		u.setLname("Dobbs");
 		u.setEmail("bdobs@supersecure.com");
@@ -229,6 +233,7 @@ public class GenerateReport {
 		List<User> hacker = new ArrayList<User>();
 		hacker.add(u);
 		hacker.add(u);
+		a.setId(1l);
 		a.setAssessor(hacker);
 		a.setRemediation(u);
 		a.setAppId("1337");
@@ -240,6 +245,7 @@ public class GenerateReport {
 		v1.setLevels(riskLevels);
 		Vulnerability v2 = new Vulnerability();
 		v2.setLevels(riskLevels);
+		v0.setId(1l);
 		v0.setName("Test Issue 1");
 		v0.setImpact(5l);
 		v0.setLikelyhood(5l);
@@ -248,6 +254,8 @@ public class GenerateReport {
 		v0.setDescription("Test Description with table <br> <table><tr><th>Site</th><th>Description</th></tr><tr><td><a href='https://www.factionsecurity.com'>https://www.factionsecurity.com</a></td><td>Something Descriptive</td></tr></table><br>");
 		v0.setDetails(details);
 		v0.setTracking("VID-1234");
+		v0.setAssessmentId(1l);
+		v1.setId(2l);
 		v1.setName("Test Issue 2");
 		v1.setImpact(4l);
 		v1.setLikelyhood(4l);
@@ -256,6 +264,8 @@ public class GenerateReport {
 		v1.setDescription("Test Description");
 		v1.setDetails(details);
 		v1.setTracking("VID-1235");
+		v1.setAssessmentId(1l);
+		v2.setId(3l);
 		v2.setName("Test Issue 3");
 		v2.setImpact(3l);
 		v2.setLikelyhood(3l);
@@ -264,6 +274,7 @@ public class GenerateReport {
 		v2.setDescription("Test Description");
 		v2.setDetails(details);
 		v2.setTracking("VID-1236");
+		v2.setAssessmentId(1l);
 		a.setVulns((new ArrayList<Vulnerability>()));
 		a.getVulns().add(v0);
 		a.getVulns().add(v1);
@@ -302,21 +313,29 @@ public class GenerateReport {
 					+ a.getAssessor().get(0).getTeam().getId() + ", \"retest\" : " + retest + "}";
 
 			ReportTemplates base = (ReportTemplates) em.createNativeQuery(mongoQuery, ReportTemplates.class)
-					.getSingleResult();
+					.getResultList()
+					.stream()
+					.findFirst()
+					.orElse(null);
 
-			ReportTemplate report = (new ReportTemplateFactory()).getReportTemplate();
-			InputStream is = report.getTemplate(base.getFilename());
 
+			InputStream is = null;
+			if(!base.getSaveInDB()) {
+				ReportTemplate report = (new ReportTemplateFactory()).getReportTemplate();
+				is = report.getTemplate(base.getFilename());
+			}else {
+				is = base.getTemplate();
+			}
+			
 			WordprocessingMLPackage mlp = WordprocessingMLPackage.load(is);
 
-			DocxUtils genDoc = new DocxUtils();
+			DocxUtils genDoc = new DocxUtils(mlp, a);
 			genDoc.FONT = RPO.getFont();
-			mlp = genDoc.generateDocx(mlp, a, customCSS);
+			mlp = genDoc.generateDocx(customCSS);
 			genDoc.tocGenerator(mlp);
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			mlp.save(baos);
 
-			// byte[] report = DocxUtils.updateTOC(baos.toByteArray());
 			byte[] finalReport = (baos.toByteArray());
 			return finalReport;
 

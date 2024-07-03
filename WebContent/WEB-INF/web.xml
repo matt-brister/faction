@@ -5,7 +5,6 @@
 	version="3.0">
 	<display-name>Faction</display-name>
 
-
 	<filter-mapping>
 		<filter-name>corsFilter</filter-name>
 		<url-pattern>/oauth/*</url-pattern>
@@ -59,6 +58,10 @@
 	<filter>
 		<filter-name>struts2</filter-name>
 		<filter-class>org.apache.struts2.dispatcher.filter.StrutsPrepareAndExecuteFilter</filter-class>
+		 <init-param>
+        	<param-name>struts.i18n.encoding</param-name>
+        	<param-value>UTF-8</param-value>
+    	</init-param>
 	</filter>
 	<filter-mapping>
 		<filter-name>struts2</filter-name>
